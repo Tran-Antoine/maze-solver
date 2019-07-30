@@ -1,5 +1,6 @@
 package net.akami.mazesolver.core;
 
+import net.akami.mazesolver.util.MazePrinter;
 import net.akami.mazesolver.util.Vector2f;
 
 import java.util.ArrayList;
@@ -8,16 +9,19 @@ import java.util.stream.Collectors;
 
 public class MazePath implements Comparable<MazePath> {
 
-    private Maze parent;
+    private final Maze parent;
     private Vector2f location;
-    private List<Vector2f> visitedLocations;
-    private int length;
+    private final List<Vector2f> visitedLocations;
     private boolean reachedExit = false;
-    private boolean lastTileToWalkOn = false;
+    private boolean singleTileLeft = false;
 
     MazePath(Maze parent, Vector2f location) {
+        this(parent, location, new ArrayList<>());
+    }
+
+    MazePath(Maze parent, Vector2f location, List<Vector2f> previousLocations) {
         this.parent = parent;
-        this.visitedLocations = new ArrayList<>();
+        this.visitedLocations = previousLocations;
         setLocation(location);
         parent.addPath(this);
     }
@@ -27,23 +31,19 @@ public class MazePath implements Comparable<MazePath> {
 
         int i = 0;
         for(Vector2f next : locations) {
-            if(i == locations.size()-1) lastTileToWalkOn = true;
+            if(i == locations.size()-1) singleTileLeft = true;
             parent.getAt(next).walkOn(this, next);
             i++;
         }
-        lastTileToWalkOn = false;
-    }
-
-    void addStep() {
-        length++;
+        singleTileLeft = false;
     }
 
     boolean singleTileLeft() {
-        return lastTileToWalkOn;
+        return singleTileLeft;
     }
 
-    void resetLastTile() {
-        this.lastTileToWalkOn = false;
+    void resetSingleTileLeft() {
+        this.singleTileLeft = false;
     }
 
     void reachExit() {
@@ -52,10 +52,7 @@ public class MazePath implements Comparable<MazePath> {
 
     @Override
     public int compareTo(MazePath o) {
-        if(!this.reachedExit) this.length = Integer.MAX_VALUE;
-        if(!o.reachedExit) o.length = Integer.MAX_VALUE;
-
-        return length - o.length;
+        return lengthToExit() - o.lengthToExit();
     }
 
     void setLocation(Vector2f tileLocation) {
@@ -64,59 +61,50 @@ public class MazePath implements Comparable<MazePath> {
     }
 
     MazePath copy(Vector2f newLocation) {
-        MazePath copy = new MazePath(parent, newLocation);
-        copy.length = this.length;
-        copy.visitedLocations = new ArrayList<>(this.visitedLocations);
+        MazePath copy = new MazePath(parent, newLocation, new ArrayList<>(visitedLocations));
         return copy;
     }
 
     private List<Vector2f> nextDirections() {
 
-        TileType[][] field = parent.getField();
         int x = location.x;
         int y = location.y;
+        Vector2f edges = parent.getEdges(y);
 
         List<Vector2f> nextLocations = new ArrayList<>();
 
         if(x != 0) nextLocations.add(new Vector2f(x-1, y));
         if(y != 0) nextLocations.add(new Vector2f(x, y-1));
-        if(x < field[y].length -1) nextLocations.add(new Vector2f(x+1, y));
-        if(y < field.length -1) nextLocations.add(new Vector2f(x, y+1));
-
-        nextLocations.removeAll(visitedLocations);
+        if(x < edges.x -1) nextLocations.add(new Vector2f(x+1, y));
+        if(y < edges.y -1) nextLocations.add(new Vector2f(x, y+1));
 
         return nextLocations
                 .stream()
+                .filter(loc -> !visitedLocations.contains(loc))
                 .filter(loc -> parent.getAt(loc).isTreadable())
                 .collect(Collectors.toList());
     }
 
-    List<Vector2f> getVisitedLocations() {
-        return visitedLocations;
+    public List<Vector2f> getVisitedLocations() {
+        return new ArrayList<>(visitedLocations);
+    }
+
+    public String getMazeToString() {
+        return parent.toString();
+    }
+
+    public int length() {
+        return visitedLocations.size()-1;
+    }
+
+    private int lengthToExit() {
+        return reachedExit ? length() : Integer.MAX_VALUE;
     }
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        String[] lines = parent.toString().split("\n");
-
-        List<Vector2f> finalPaths = new ArrayList<>(visitedLocations);
-        finalPaths.remove(0);
-        finalPaths.remove(finalPaths.size()-1);
-
-        for(Vector2f position : finalPaths) {
-            char[] line = lines[position.y].toCharArray();
-            line[position.x] = '.';
-            lines[position.y] = new String(line);
-        }
-        for(String line : lines) {
-            builder.append(line).append("\n");
-        }
-        builder
-                .append("\n")
-                .append("Distance between the start and the arrival (starting tile excluded) : ")
-                .append(length);
-
-        return builder.toString();
+        return MazePrinter.printMazePath(this);
     }
+
+
 }

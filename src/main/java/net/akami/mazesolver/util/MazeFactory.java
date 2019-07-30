@@ -14,7 +14,7 @@ public final class MazeFactory {
     public static Maze createMaze(String path) throws IOException {
 
         File file = new File(path);
-        if(!file.exists()) throw new IOException("Unable to locate file : "+path);
+        if(!file.exists()) throw new IOException("Unable to locate file "+path);
 
         BufferedReader reader = new BufferedReader(new FileReader(file));
         List<String> lines = reader.lines().collect(Collectors.toList());
@@ -38,5 +38,4 @@ public final class MazeFactory {
 
         return new Maze(fieldArray, start);
     }
-
 }

@@ -2,7 +2,6 @@ package net.akami.mazesolver.core;
 
 import net.akami.mazesolver.util.Vector2f;
 
-import java.util.List;
 import java.util.function.BiConsumer;
 
 public enum TileType {
@@ -25,7 +24,7 @@ public enum TileType {
         for(TileType tile : values()) {
             if(tile.id == id) return tile;
         }
-        throw new IllegalArgumentException("Could not match the given char with any kind of tile");
+        return TileType.WALL;
     }
 
     public boolean isTreadable() {
@@ -56,15 +55,12 @@ public enum TileType {
 
         if(path.singleTileLeft()) {
             current = path;
-            path.resetLastTile();
+            path.resetSingleTileLeft();
+            path.setLocation(tileLocation);
         }
         else {
-            List<Vector2f> visitedLocations = path.getVisitedLocations();
-            current = path.copy(visitedLocations.get(visitedLocations.size()-1));
+            current = path.copy(tileLocation);
         }
-
-        current.addStep();
-        current.setLocation(tileLocation);
         return current;
     }
 }

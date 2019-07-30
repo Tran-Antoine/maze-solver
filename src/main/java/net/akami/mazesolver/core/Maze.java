@@ -48,7 +48,7 @@ public class Maze {
         return field[position.y][position.x];
     }
 
-    TileType[][] getField() {
-        return field;
+    Vector2f getEdges(int currentYColumn) {
+        return new Vector2f(field[currentYColumn].length, field.length);
     }
 }
